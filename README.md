@@ -34,7 +34,7 @@ print("torchvision version:", torchvision.__version__)
 
 #### <font color=Purple><b><i> c) Import nescessary libraries </i></b></font> 
 
-The below code can be found in the file **"libs.py"**
+The below code can be found in the file <font color=Yellow><i> "libs.py" </i></font>
 
 ```bash
 from sklearn.model_selection import train_test_split
@@ -85,27 +85,25 @@ In order to properly train a neural network (but in general any classifier), the
 - If the classifier is trained on some imbalanced data, say 99 events A and 1 event B, then it will always be convenient to predict event A (99% accuracy on the training data)
 - This is why, when dealing with (strongly) imbalanced classes, as in this case, intervention is needed.
 
-The code below will analyze the data of **PNEUMONIA** than **NORMAL** in the **"train"** set. You can find full code in <font color=Yellow><i> analyzeData.py </i></font> file.
+The code below will analyze the data of **PNEUMONIA** than **NORMAL** in the **"train"** set. You can find it in **"analyze_data"** function in <font color=Yellow><i> analyzeData.py </i></font> file.
 
 ```bash
-from libs import *
+def analyze_data(data_dir):
+    ...
 
-data_dir = '' #Fill in ' ' your path
-train_dir = os.path.join(data_dir, 'train')  
-normal_train_dir = os.path.join(train_dir, 'NORMAL')  
-pneumonia_train_dir = os.path.join(train_dir, 'PNEUMONIA')  
+    # Count samples
+    n_samples_nr_train = len(os.listdir(normal_train_dir))  
+    n_samples_pn_train = len(os.listdir(pneumonia_train_dir))  
 
-.
-.
-.
+    # Define result
+    class_count = {0: n_samples_nr_train, 1: n_samples_pn_train}
+    class_names = {0: 'NORMAL', 1: 'PNEUMONIA'}
 
-fig, ax = plt.subplots(figsize=(5, 5))
-ax.bar([class_names[0], class_names[1]], [class_count[0], class_count[1]])
-ax.set_title('Class Distribution in Training Set')
-ax.set_ylabel('Number of Samples')
-ax.set_xlabel('Class')
-plt.show()
+    ...
 
+    plt.show()
+
+    return class_count
 ```
 , and the above code will return a comparison chart between the two classes. It'll look like this:
 <center>
@@ -126,6 +124,39 @@ In this way for the classifier it will no longer be convenient, as it was previo
 As already intuited, in this context, the weight for each class is calculated as:
 
 $\qquad class\hspace{2pt}weight = 1 - \frac{number\hspace{2pt}of\hspace{2pt}samples\hspace{2pt}of\hspace{2pt}the\hspace{2pt}class}{total\hspace{2pt}numer\hspace{2pt}of\hspace{2pt}samples}$
+
+The code implementing the above idea can be found in the **"class_weights"** function in the file <font color=Yellow><i> analyzeData.py </i></font>
+
+```bash
+def class_weights(class_count):
+    ...
+
+    samples_0 = class_count[0]
+    samples_1 = class_count[1]
+    tot_samples = samples_0 + samples_1
+
+    # Calculate weights
+    weight_0 = 1 - samples_0 / tot_samples
+    weight_1 = 1 - weight_0  # equivalent to 1 - samples_1 / tot_samples
+
+    ...
+    return class_weights_tensor
+```
+, you will get the following result on the terminal :
+```bash
+Class weights: [0.7421636085626911, 0.25783639143730885]
+```
+
+### 📚 <font color=Gree><b> 2. </b></font> <font color=Gree> Training </font> </br>
+
+```bash
+Classes: ['NORMAL', 'PNEUMONIA']
+Total images: 5232
+Training set size: 3662
+Validation set size: 1570
+```
+
+
 
 
 
