@@ -21,6 +21,7 @@ from torchvision import datasets, transforms, models
 import torchvision.transforms as transform
 import torchvision.models as models
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
 
 # Warnings off : Removes unnecessary warnings for a cleaner interface.
 import warnings
