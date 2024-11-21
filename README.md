@@ -106,6 +106,11 @@ ax.set_xlabel('Class')
 plt.show()
 
 ```
+, and the above code will return a comparison chart between the two classes. It'll look like this:
+<center>
+  <img src="assets/analyze.png" alt="Circular Buffer Animation">
+</center>
+</br>
 
 #### <font color=Purple><b><i> c) Solution : Weighted classes </i></b></font>
 
