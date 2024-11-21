@@ -2,7 +2,7 @@
   Pediatric Pneumonia Chest X-ray 🫁
 </div>
 
-#### 📖 <font color=red><b>Note that,</b></font> This **README** file is a step-by-step guide to setup. While there are some code snippets here, it is only a shorthand to illustrate what is in the file, so please do not copy the code into your file to run it and cause errors. </br>
+#### 📖 <font color=red><b>Note that,</b></font> This **README** file is a step-by-step guide to setup. While there are some code snippets here, it is only a shorthand to illustrate what is in the file, so please do not copy the code in this file and put into your file to run, it can cause unwanted errors. </br>
 <font color=yellow>Please strictly follow the instructions.</font>
 
 ### ⚙️ <font color=Gree><b>0.</b></font> <font color=Gree> Settings </font> </br>
