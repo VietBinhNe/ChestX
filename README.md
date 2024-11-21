@@ -20,6 +20,7 @@ Make sure your versions of PyTorch and torchvision are compatible. You can refer
 | 2.0.0              | 0.15.0              |
 | 1.13.1             | 0.14.1              |
 | 1.12.0             | 0.13.0              |
+| 1.11.0             | 0.12.0              |
 
 The below code can be found in the file **"testTorch_ver.py**
 
@@ -112,9 +113,11 @@ plt.show()
 </center>
 </br>
 
+The classes are highly unbalanced, so it is necessary to balance them manually. In particular, in this project will be tested balancing via class weighting.
+
 #### <font color=Purple><b><i> c) Solution : Weighted classes </i></b></font>
 
-The approach I propose here is to train a neural network that associates each layer with a certain weight..<br>
+The approach I propose here is to train a neural network that associates each layer with a certain weight.<br>
 Suppose we deal with the case of an event A (99 samples) vs. an event B (1 sample):
 * if for an event A the classifier predicts an event B, the weight of the error will be $\hspace{2pt}\frac{1}{99+1}$
 * if for an event B the classifier will predict an event A, the weight of the error will be $\hspace{2pt}\frac{99}{99+1}$
