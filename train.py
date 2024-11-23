@@ -1,88 +1,114 @@
-from libs import *
-
-def prepare_dataset(data_dir, sub_dir='train'):
-    """
-    Prepare the dataset with transformations and split it into training and validation sets.
-
-    Parameters:
-    - data_dir (str): Path to the main data directory.
-    - sub_dir (str): The subdirectory where the train data is stored (default: 'train').
-
-    Returns:
-    - train_split: Training dataset split.
-    - val_split: Validation dataset split.
-    """
-
-    full_dir = os.path.join(data_dir, sub_dir)
-    if not os.path.exists(full_dir):
-        raise FileNotFoundError(f"Directory {full_dir} doesn't exist. Please check the path again!")
-
-    # Define transformations to apply to the data
-    data_transform = transforms.Compose([
-        transforms.Resize((256, 256)),
-        transforms.CenterCrop(224),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(10),
-        transforms.RandomGrayscale(),
-        transforms.RandomAffine(translate=(0.05, 0.05), degrees=0),
-        transforms.ToTensor()
-    ])
-
-    # Load the dataset using ImageFolder and apply transformations
-    dataset = datasets.ImageFolder(full_dir, transform=data_transform)
-    print(f"Classes: {dataset.classes}")
-    print(f"Total images: {len(dataset)}")
-
-    # Split dataset into training and validation sets
-    train_split, val_split = train_test_split(dataset, test_size=0.3, random_state=42)
-    print(f"Training set size: {len(train_split)}")
-    print(f"Validation set size: {len(val_split)}")
-
-    return train_split, val_split
+import copy
+import torch
+from torch import nn
+from torch.optim import lr_scheduler
+from torchvision import models
+from data import load_data
 
 
-def load_data(data_dir, sub_dir='train', batch_size=64):
-    train_split, val_split = prepare_dataset(data_dir, sub_dir)
+data_dir = r'D:\Workspace\ChestX\Data'
+train_loader, val_loader, class_index = load_data(data_dir)
 
-    # Create DataLoader for train and validation datasets
-    train_loader = DataLoader(train_split, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_split, batch_size=batch_size, shuffle=True)
-    
-    # Define class index mapping
-    class_index = {0: 'NORMAL', 1: 'PNEUMONIA'}
+# (CPU)
+device = torch.device("cpu")
 
-    return train_loader, val_loader, class_index
+# Mô hình
+model = models.densenet161(pretrained=True)
+model.classifier = nn.Linear(model.classifier.in_features, 2)  # 2 classes
+model.to(device)
+
+# Loss function và optimizer
+loss_function = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+# Scheduler (điều chỉnh learning rate)
+scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+
+# ======================================
+#   Định nghĩa các hàm bổ sung
+# ======================================
+
+def training_step(model, loader, loss_function):
+    model.train()
+    epoch_loss = 0
+    epoch_correct = 0
+
+    for images, labels in iter(loader):
+        images, labels = images.to(device), labels.to(device)
+        optimizer.zero_grad()
+        with torch.set_grad_enabled(True):
+            output = model(images)
+            loss = loss_function(output, labels)
+            loss.backward()
+            optimizer.step()
+            _, predictions = torch.max(output, dim=1)
+
+        epoch_loss += loss.item() * images.size(0)
+        epoch_correct += torch.sum(predictions == labels)
+
+    epoch_loss = epoch_loss / len(loader.dataset)
+    accuracy = epoch_correct.double() / len(loader.dataset)
+    return epoch_loss, accuracy
 
 
-def visualize_images(train_loader, class_index, n_rows=2, n_cols=5):
-    """
-    Visualizes a few images from the training data along with their class labels.
+def evaluate_model(model, loader, loss_function):
+    model.eval()
+    epoch_loss = 0
+    epoch_correct = 0
 
-    Args:
-        train_loader (DataLoader): The DataLoader object for the training data.
-        class_index (dict): A dictionary mapping class indices to class names.
-        n_rows (int): Number of rows for the grid of images.
-        n_cols (int): Number of columns for the grid of images.
-    """
+    for images, labels in iter(loader):
+        images, labels = images.to(device), labels.to(device)
+        with torch.set_grad_enabled(False):
+            output = model(images)
+            loss = loss_function(output, labels)
+            _, predictions = torch.max(output, dim=1)
 
-    images, labels = next(iter(train_loader))
-    plt.figure(figsize=(20, 10))
+        epoch_loss += loss.item() * images.size(0)
+        epoch_correct += torch.sum(predictions == labels)
 
-    # Loop over the grid positions and display images
-    for i in range(n_rows * n_cols):
-        plt.subplot(n_rows, n_cols, i + 1)
-        plt.imshow(np.transpose(images[i].numpy(), (1, 2, 0)))  
-        plt.title(class_index[labels.numpy()[i]])  # Set title as the class label
-        plt.axis('off')  
+    epoch_loss = epoch_loss / len(loader.dataset)
+    accuracy = epoch_correct.double() / len(loader.dataset)
+    return epoch_loss, accuracy
 
-    plt.subplots_adjust(wspace=.02, hspace=-.2)
-    plt.show()
 
-if __name__ == "__main__":
-    data_dir = r'D:\Workspace\ChestX\Data'
+# ======================================
+#   Vòng lặp huấn luyện
+# ======================================
 
-    # Load data 
-    train_loader, val_loader, class_index = load_data(data_dir)
+# Số epoch
+epochs = 15
+best_val_loss = float('inf')
+best_model = copy.deepcopy(model.state_dict())
 
-    # Visualize 
-    visualize_images(train_loader, class_index)
+# Lưu kết quả
+train_loss_savings = []
+train_acc_savings = []
+val_loss_savings = []
+val_acc_savings = []
+
+# Huấn luyện
+for epoch in range(epochs):
+    train_loss, train_acc = training_step(model, train_loader, loss_function)
+    train_loss_savings.append(train_loss)
+    train_acc_savings.append(train_acc.item())
+
+    val_loss, val_acc = evaluate_model(model, val_loader, loss_function)
+    val_loss_savings.append(val_loss)
+    val_acc_savings.append(val_acc.item())
+
+    print(f"Epoch {epoch+1:02}/{epochs} - train_loss: {train_loss:.4f}, train_acc: {train_acc:.4f}, val_loss: {val_loss:.4f}, val_acc: {val_acc:.4f}")
+
+    if val_loss < best_val_loss:
+        print(f"Epoch {epoch+1:02} - val_loss improved from {best_val_loss:.4f} to {val_loss:.4f}, saving model.")
+        best_val_loss = val_loss
+        best_model = copy.deepcopy(model.state_dict())
+    else:
+        print(f"Epoch {epoch+1:02} - val_loss did not improve.")
+
+    scheduler.step()
+
+# ======================================
+#   Model Saved
+# ======================================
+torch.save(best_model, 'best-model-weighted.pt')
+print("Mô hình tốt nhất đã được lưu.")
