@@ -71,7 +71,7 @@ Overview of the functionality of some libraries used:
 #### <font color=Purple><b><i> a) Abstract </i></b></font> 
 The dataset is organized into two folders, **train** and **test**, and contains subfolders for each image category, **pneumonia** and **normal**.</br>
 Overall, there are 5856 Chest X-rays labelled as either pneumonia or normal: 1583 normal (1349 for training, 234 for testing) and 4273 pneumonia (3883 for training, 390 for testing). </br>
-Chest X-ray images were selected from  Guangzhou Women and Children’s Medical Center, Guangzhou. All chest X-ray imaging was performed as part of patients’ routine clinical care. For the analysis of chest X-ray images, all chest radiographs were initially screened for quality control by removing all low quality or unreadable scans. 
+Chest X-ray images were selected from <font color=Pink><b><i>Guangzhou Women and Children’s Medical Center, Guangzhou</i></b></font>. All chest X-ray imaging was performed as part of patients’ routine clinical care. For the analysis of chest X-ray images, all chest radiographs were initially screened for quality control by removing all low quality or unreadable scans. 
 
 Link to this dataset:
 https://www.kaggle.com/datasets/andrewmvd/pediatric-pneumonia-chest-xray
@@ -147,7 +147,7 @@ def class_weights(class_count):
 Class weights: [0.7421636085626911, 0.25783639143730885]
 ```
 
-### 📚 <font color=Gree><b> 2. </b></font> <font color=Gree> Training </font> </br>
+### 📚 <font color=Gree><b> 2. </b></font> <font color=Gree> Pre-Training </font> </br>
 
 ```bash
 Classes: ['NORMAL', 'PNEUMONIA']
@@ -155,6 +155,11 @@ Total images: 5232
 Training set size: 3662
 Validation set size: 1570
 ```
+
+
+### 📚 <font color=Gree><b> 3. </b></font> <font color=Gree> Training </font> </br>
+
+Put "ChestX-Training.ipynb" into Google Collab, run and save model.
 
 
 
