@@ -193,41 +193,42 @@ DenseNet-161 is a convolutional neural network (CNN) known for its dense connect
 
 This's a summary for the DenseNet-161 model:
 
-```
-________________________________________________________________________________________________________________________
-Layer (type)                                  Output Shape              Param #     Connected to                     
-========================================================================================================================
-input_0 (InputLayer)                          [(None, 3, H, W)]         0           []                               
-________________________________________________________________________________________________________________________
-conv0 (Conv2d)                                (None, 96, H/2, W/2)      14,784      input_0[0][0]                     
-________________________________________________________________________________________________________________________
-norm0 (BatchNorm2d)                           (None, 96, H/2, W/2)      384         conv0[0][0]                      
-________________________________________________________________________________________________________________________
-relu0 (ReLU)                                  (None, 96, H/2, W/2)      0           norm0[0][0]                      
-________________________________________________________________________________________________________________________
-pool0 (MaxPool2d)                             (None, 96, H/4, W/4)      0           relu0[0][0]                       
-________________________________________________________________________________________________________________________
-denseblock1 (DenseBlock, x6 Layers)          (None, 384, H/4, W/4)     394,752     pool0[0][0]                       
-________________________________________________________________________________________________________________________
-transition1 (Transition)                      (None, 192, H/8, W/8)     73,920      denseblock1[0][0]                 
-________________________________________________________________________________________________________________________
-denseblock2 (DenseBlock, x12 Layers)         (None, 768, H/8, W/8)     1,626,624   transition1[0][0]                  
-________________________________________________________________________________________________________________________
-transition2 (Transition)                      (None, 384, H/16, W/16)   295,296     denseblock2[0][0]                  
-________________________________________________________________________________________________________________________
-denseblock3 (DenseBlock, x36 Layers)         (None, 2112, H/16, W/16)  10,538,496  transition2[0][0]                  
-________________________________________________________________________________________________________________________
-transition3 (Transition)                      (None, 1056, H/32, W/32)  2,228,256   denseblock3[0][0]                  
-________________________________________________________________________________________________________________________
-denseblock4 (DenseBlock, x24 Layers)         (None, 2208, H/32, W/32)  11,358,720  transition3[0][0]                  
-________________________________________________________________________________________________________________________
-norm5 (BatchNorm2d)                           (None, 2208, H/32, W/32)  8,832       denseblock4[0][0]                  
-________________________________________________________________________________________________________________________
-classifier (Linear)                           (None, 1000)              2,209,000   norm5[0][0]                        
-========================================================================================================================
-Total params: 28,748,978
-Trainable params: 28,559,986
-Non-trainable params: 188,992
+```bash
+DenseNet-161
+
+---------------------------------------------------------------------------------------------
+      Layer (type)                  Input Shape              Output Shape           Param #
+=============================================================================================
+                                 [-1, 3, 224, 224]  
+        Conv2d                   [-1, 3, 224, 224]        [-1, 96, 112, 112]        14,784
+      BatchNorm2d                [-1, 96, 112, 112]       [-1, 96, 112, 112]          384
+         ReLU                    [-1, 96, 112, 112]       [-1, 96, 112, 112]           0
+       MaxPool2d                 [-1, 96, 112, 112]       [-1, 96, 56, 56]             0
+---------------------------------------------------------------------------------------------
+   _DenseBlock-1 (block-1)       [-1, 96, 56, 56]         [-1, 384, 56, 56]            0      
+   _Transition-1 (trans-1)       [-1, 384, 56, 56]        [-1, 192, 28, 28]            0
+---------------------------------------------------------------------------------------------
+   _DenseBlock-2 (block-2)       [-1, 192, 28, 28]        [-1, 768, 28, 28]            0
+   _Transition-2 (trans-2)       [-1, 768, 28, 28]        [-1, 384, 14, 14]            0
+---------------------------------------------------------------------------------------------
+   _DenseBlock-3 (block-3)       [-1, 384, 14, 14]        [-1, 2112, 14, 14]           0
+   _Transition-3 (trans-3)       [-1, 2112, 14, 14]       [-1, 1056, 7, 7]             0
+---------------------------------------------------------------------------------------------
+   _DenseBlock-4 (block-4)       [-1, 1056, 7, 7]         [-1, 2208, 7, 7]             0
+      BatchNorm2d                [-1, 2208, 7, 7]         [-1, 2208, 7, 7]           8,832
+         ReLU                    [-1, 2208, 7, 7]         [-1, 2208, 7, 7]             0
+---------------------------------------------------------------------------------------------
+      Linear-14                  [-1, 2208, 7, 7]         [-1, 1000]               2,209,000
+=============================================================================================
+Total params: 28,681,000
+Trainable params: 28,681,000
+Non-trainable params: 0
+---------------------------------------------------------------------------------------------
+Input size (MB): 0.57
+Forward/backward pass size (MB): 690.38
+Params size (MB): 109.41
+Estimated Total Size (MB): 800.36
+---------------------------------------------------------------------------------------------
 ```
 
 **Notes:** `H` and `W` are placeholders for the height and width of the input image. They will be actual numbers depending on your input data.
@@ -242,8 +243,28 @@ model
 
 #### <font color=Purple><b> 3.2/ </b></font> <font color=Purple><b><i> Fine-tuning </i></b></font> </br>
 
-This part involves fine-tuning a pre-trained model (specifically DenseNet, based on **model.classifier.in_features**), replacing the old classifier with a new classifier that is appropriate for this project.
+This section covers fine-tuning the pre-trained DenseNet-161 model, replacing the old (linear) classifier with a new classifier suitable for this project.
 
+* First, we will extract the properties of the pre-trained model. We will use **Transfer Learning** - a technique that takes a model that has been trained on a large dataset (in the case of DenseNet-161 is ImageNet) and applies it to a new problem, usually a smaller dataset. The idea is that the model has learned useful features from the large dataset, and these features can be reused for the new problem.
+
+```bash
+# Important: compatibility problem
+# Whatever classifier we put, it will have to have 'model.classifier.in_features' as 'in_features'
+model.classifier.in_features
+```
+  This line accesses the **in_features** property of the current classifier of the model (DenseNet-161). This property indicates the number of input features of the classifier. In DenseNet-161 trained on ImageNet, the classifier is a Linear (fully connected) layer with **in_features=2208**.
+
+  Note: The two comments emphasize that any new classifier that replaces it must have the same number of in_features as the old classifier (here 2208 - see the Model Summary above). This is important to ensure size compatibility between the output of the feature extractor and the input of the new classifier.
+
+* However, here we are only tweaking to suit the project, not changing the architecture of the model learned from the ImageNet dataset. We will freeze all the weights of the pre-trained model, including the feature extraction and the initial classification layer.
+
+```bash
+for parameter in model.parameters():
+    parameter.requires_grad = False
+```
+The for loop will iterate through each parameter and set the **requires_grad** attribute (to decide whether a parameter is updated during backpropagation) to **False** so that the parameter will be frozen, not changing its value during training.
+
+* 
 
 
 
