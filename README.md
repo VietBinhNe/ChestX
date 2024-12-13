@@ -161,6 +161,114 @@ Validation set size: 1570
 
 Put "ChestX-Training.ipynb" into Google Collab, run and save model.
 
+#### <font color=Purple><b> 3.1/ </b></font> <font color=Purple> Model </font> </br>
+
+Model using in this project is DenseNet-161, now let's break down the structure of this model.
+
+**Overall Architecture**
+
+DenseNet-161 is a convolutional neural network (CNN) known for its dense connections between layers. It's characterized by:
+
+*   **Dense Blocks:** The core building blocks of DenseNet, where each layer is connected to every other layer within the block in a feed-forward fashion.
+*   **Transition Layers:**  Layers between dense blocks that reduce the spatial dimensions of the feature maps and control the number of channels.
+*   **Classification Layer:** The final layer that produces the output probabilities for each class (in this case, 1000 classes, likely for ImageNet).
+
+**Model Breakdown**
+
+This's a summary for the DenseNet-161 model:
+
+```
+________________________________________________________________________________________________________________________
+Layer (type)                                  Output Shape              Param #     Connected to                     
+========================================================================================================================
+input_0 (InputLayer)                          [(None, 3, H, W)]         0           []                               
+________________________________________________________________________________________________________________________
+conv0 (Conv2d)                                (None, 96, H/2, W/2)      14,784      input_0[0][0]                     
+________________________________________________________________________________________________________________________
+norm0 (BatchNorm2d)                           (None, 96, H/2, W/2)      384         conv0[0][0]                      
+________________________________________________________________________________________________________________________
+relu0 (ReLU)                                  (None, 96, H/2, W/2)      0           norm0[0][0]                      
+________________________________________________________________________________________________________________________
+pool0 (MaxPool2d)                             (None, 96, H/4, W/4)      0           relu0[0][0]                       
+________________________________________________________________________________________________________________________
+denseblock1 (DenseBlock, x6 Layers)          (None, 384, H/4, W/4)     394,752     pool0[0][0]                       
+________________________________________________________________________________________________________________________
+transition1 (Transition)                      (None, 192, H/8, W/8)     73,920      denseblock1[0][0]                 
+________________________________________________________________________________________________________________________
+denseblock2 (DenseBlock, x12 Layers)         (None, 768, H/8, W/8)     1,626,624   transition1[0][0]                  
+________________________________________________________________________________________________________________________
+transition2 (Transition)                      (None, 384, H/16, W/16)   295,296     denseblock2[0][0]                  
+________________________________________________________________________________________________________________________
+denseblock3 (DenseBlock, x36 Layers)         (None, 2112, H/16, W/16)  10,538,496  transition2[0][0]                  
+________________________________________________________________________________________________________________________
+transition3 (Transition)                      (None, 1056, H/32, W/32)  2,228,256   denseblock3[0][0]                  
+________________________________________________________________________________________________________________________
+denseblock4 (DenseBlock, x24 Layers)         (None, 2208, H/32, W/32)  11,358,720  transition3[0][0]                  
+________________________________________________________________________________________________________________________
+norm5 (BatchNorm2d)                           (None, 2208, H/32, W/32)  8,832       denseblock4[0][0]                  
+________________________________________________________________________________________________________________________
+classifier (Linear)                           (None, 1000)              2,209,000   norm5[0][0]                        
+========================================================================================================================
+Total params: 28,748,978
+Trainable params: 28,559,986
+Non-trainable params: 188,992
+```
+
+**Notes:**
+
+*   `H` and `W` are placeholders for the height and width of the input image. They will be actual numbers depending on your input data.
+
+
+
+1. **Initial Convolution and Preprocessing (`conv0`, `norm0`, `relu0`, `pool0`)**
+
+    *   `conv0`: A 2D convolutional layer with:
+        *   Input channels: 3 (likely representing RGB color channels of an image)
+        *   Output channels: 96
+        *   Kernel size: 7x7
+        *   Stride: 2 (moves the filter 2 pixels at a time)
+        *   Padding: 3 (adds padding to maintain spatial dimensions after convolution)
+        *   Bias: False (no bias term is added)
+    *   `norm0`: Batch normalization. It normalizes the activations of the previous layer, stabilizing and accelerating training.
+    *   `relu0`: Rectified Linear Unit (ReLU) activation function. It introduces non-linearity by setting negative values to zero, `f(x) = max(0, x)`.
+    *   `pool0`: Max pooling layer. It reduces the spatial dimensions of the feature maps by taking the maximum value within a 3x3 window, with a stride of 2.
+
+2. **Dense Blocks (e.g., `denseblock1`, `denseblock2`, ...)**
+
+    *   **Structure:** Each dense block consists of multiple dense layers (e.g., `denselayer1`, `denselayer2`, ...). The number of layers in each dense block varies in DenseNet-161, following a specific pattern: 6, 12, 36, 24.
+    *   **Dense Layers (e.g., `denselayer1`)**
+        *   `norm1`, `relu1`, `conv1`: A sequence of batch normalization, ReLU activation, and a 1x1 convolution. The 1x1 convolution expands the number of channels to 192 (bottleneck layer).
+        *   `norm2`, `relu2`, `conv2`: Another sequence of batch normalization, ReLU activation, and a 3x3 convolution. The 3x3 convolution extracts features and reduces the number of channels back down to 48 (the growth rate).
+        *   **Concatenation (implicit):** The crucial part is that the output of each `denselayer` (48 channels) is concatenated with the input of that `denselayer`. This concatenation is the "dense" connection. For example, `denselayer2` receives input from the output of `denselayer1` and also the original input to `denseblock1`. This is why the input channel size to each layer grows (96, 144, 192, 240, etc.)
+    *   **Growth Rate:** In this model, the growth rate is 48. This means each dense layer adds 48 channels to the feature map.
+
+3. **Transition Layers (e.g., `transition1`, `transition2`, ...)**
+
+    *   **Purpose:** These layers connect dense blocks. They reduce the number of feature maps and their spatial dimensions.
+    *   `norm`, `relu`, `conv`: Batch normalization, ReLU, and a 1x1 convolution. The 1x1 convolution reduces the number of channels (e.g., from 384 to 192 in `transition1`).
+    *   `pool`: Average pooling with a 2x2 kernel and stride of 2. This halves the spatial dimensions (height and width) of the feature maps.
+
+4. **Final Classification (`norm5`, `classifier`)**
+
+    *   `norm5`: Batch normalization before the final classification layer.
+    *   `classifier`: A fully connected (linear) layer that maps the 2208 features from the last dense block to 1000 output classes. This layer has a bias term.
+
+**Key Concepts and Advantages of DenseNet**
+
+*   **Dense Connectivity:** The core idea. Connecting all layers directly within a dense block has several benefits:
+    *   **Feature Reuse:** Layers can directly access the feature maps from all preceding layers, promoting feature reuse and reducing the number of parameters.
+    *   **Vanishing Gradient Mitigation:** Shorter paths to earlier layers improve gradient flow during backpropagation, making training easier.
+    *   **Stronger Feature Propagation:** Information can flow more easily through the network.
+*   **Bottleneck Layers:** The 1x1 convolutions within dense layers that reduce the number of input channels before the 3x3 convolution help to reduce computational cost.
+*   **Parameter Efficiency:** DenseNets often achieve high accuracy with fewer parameters compared to other architectures like ResNets, especially for deeper networks.
+
+**DenseNet-161 Specifics**
+
+*   **161 Layers:** This number refers to the total number of convolutional and fully connected layers (not including batch normalization or pooling).
+*   **Layer Pattern:**  6, 12, 36, 24 (number of layers in each of the four dense blocks).
+*   **Growth Rate (k):** 48 (as explained earlier).
+
+**In summary,** DenseNet-161 is a powerful and parameter-efficient CNN architecture that leverages dense connectivity to achieve high accuracy in image classification tasks. Its structure allows for effective feature reuse, gradient flow, and information propagation, making it a popular choice in various computer vision applications.
 
 
 
