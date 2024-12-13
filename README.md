@@ -161,7 +161,7 @@ Validation set size: 1570
 
 Put "ChestX-Training.ipynb" into Google Collab, run and save model.
 
-#### <font color=Purple><b> 3.1/ </b></font> <font color=Purple> Model </font> </br>
+#### <font color=Purple><b> 3.1/ </b></font> <font color=Purple><b><i> Model </i></b></font> </br>
 
 Model using in this project is DenseNet-161, now let's break down the structure of this model.
 
@@ -230,13 +230,19 @@ Trainable params: 28,559,986
 Non-trainable params: 188,992
 ```
 
-**Notes:**
+**Notes:** `H` and `W` are placeholders for the height and width of the input image. They will be actual numbers depending on your input data.
 
-*   `H` and `W` are placeholders for the height and width of the input image. They will be actual numbers depending on your input data.
+, or you can see the detailed parameters of the layers of the denseNet blocks when declaring the model:
+```bash
+# Base model (transfer learning): DenseNet-161
+# Transfer Learning
+model = models.densenet161(pretrained=True)
+model
+```
 
+#### <font color=Purple><b> 3.2/ </b></font> <font color=Purple><b><i> Fine-tuning </i></b></font> </br>
 
-
-
+This part involves fine-tuning a pre-trained model (specifically DenseNet, based on **model.classifier.in_features**), replacing the old classifier with a new classifier that is appropriate for this project.
 
 
 
