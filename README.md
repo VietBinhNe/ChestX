@@ -1,6 +1,7 @@
-<div style="text-align: center; background-color: #8F98E3; font-family: 'Trebuchet MS', Arial, sans-serif; color: white; padding: 10px; font-size: 25px; font-weight: bold; border-radius: 0 0 0 0; box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.2);">
+<!-- <div style="text-align: center; background-color: #8F98E3; font-family: 'Trebuchet MS', Arial, sans-serif; color: white; padding: 10px; font-size: 25px; font-weight: bold; border-radius: 0 0 0 0; box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.2);">
   Pediatric Pneumonia Chest X-ray 🫁
-</div>
+</div> -->
+# Pediatric Pneumonia Chest X-ray 🫁
 
 #### 📖 <font color=red><b>Note that,</b></font> This **README** file is a step-by-step guide to setup. While there are some code snippets here, it is only a shorthand to illustrate what is in the file, so please do not copy the code in this file and put into your file to run, it can cause unwanted errors. </br>
 <font color=yellow>Please strictly follow the instructions.</font>
@@ -157,9 +158,10 @@ Validation set size: 1570
 ```
 
 
-### 📚 <font color=Gree><b> 3. </b></font> <font color=Gree> Training </font> </br>
+### 📓 <font color=Gree><b> 3. </b></font> <font color=Gree> Training </font> </br>
 
-Put "ChestX-Training.ipynb" into Google Collab, run and save model.
+Put <font color=Red><b>"ChestX-Training.ipynb"</b></font> file into Google Collab, 
+follow the installation instructions in that file, run it and display the results.
 
 #### <font color=Purple><b> 3.1/ </b></font> <font color=Purple><b><i> Model </i></b></font> </br>
 
@@ -218,7 +220,7 @@ DenseNet-161
       BatchNorm2d                [-1, 2208, 7, 7]         [-1, 2208, 7, 7]           8,832
          ReLU                    [-1, 2208, 7, 7]         [-1, 2208, 7, 7]             0
 ---------------------------------------------------------------------------------------------
-      Linear-14                  [-1, 2208, 7, 7]         [-1, 1000]               2,209,000
+      Linear                     [-1, 2208, 7, 7]         [-1, 1000]               2,209,000
 =============================================================================================
 Total params: 28,681,000
 Trainable params: 28,681,000
@@ -231,9 +233,7 @@ Estimated Total Size (MB): 800.36
 ---------------------------------------------------------------------------------------------
 ```
 
-**Notes:** `H` and `W` are placeholders for the height and width of the input image. They will be actual numbers depending on your input data.
-
-, or you can see the detailed parameters of the layers of the denseNet blocks when declaring the model:
+<font color=Yellow><b> Note: </b></font> you can see the detailed parameters of the layers of the denseNet blocks when declaring the model:
 ```bash
 # Base model (transfer learning): DenseNet-161
 # Transfer Learning
@@ -259,12 +259,53 @@ model.classifier.in_features
 * However, here we are only tweaking to suit the project, not changing the architecture of the model learned from the ImageNet dataset. We will freeze all the weights of the pre-trained model, including the feature extraction and the initial classification layer.
 
 ```bash
+# Freeze the weights of the pre-trained model
 for parameter in model.parameters():
     parameter.requires_grad = False
 ```
 The for loop will iterate through each parameter and set the **requires_grad** attribute (to decide whether a parameter is updated during backpropagation) to **False** so that the parameter will be frozen, not changing its value during training.
 
-* 
+* Next, we will build a new classification layer with the input parameter **(in_features)** of the old classification layer (2208) and save it in the variable **initial_num_neurons** , and the output parameter is 2 (NORMAL and PNEUMONIA), taken from the previously defined dictionary **class_index** and saved in the variable **num_classes**. Then proceed to replace the old classification layer of the model with the newly created classification layer.
+
+```bash
+# Build a custom classifier
+initial_num_neurons = model.classifier.in_features
+num_classes = len(class_index)
+classifier = nn.Linear(in_features=initial_num_neurons, out_features=num_classes)
+model.classifier = classifier
+```
+
+* Loss Function: The loss function used here is <font color=Yellow><b> Multiclass Cross Entropy Loss </b></font>, a variant of Cross Entropy Loss - a 
+popular loss function used in classification problems. Let's talk a little about this function:</br>
+Multiclass Cross Entropy Loss, also known as **Categorical cross entropy loss** or **Softmax loss**. 
+For a dataset with N instances, the Multiclass Cross Entropy Loss is calculated as follows:
+
+$$
+-\frac{1}{N}\Sigma_{i=1}^N\Sigma_{j=1}^C(y_{i,j}.log(p_{i,j}))
+$$
+
+where:</br>
+     - C is the number of classes.</br>
+     - yi,j are the true labels for class j for instance i</br>
+     - pi,j is the predicted probability for class j for instance i</br>
+
+```bash
+loss_function = nn.CrossEntropyLoss(weight=class_weights.to(device))
+```
+And if you remember, I have already given a solution to the imbalanced data using a **weight**. 
+And now I will implement the class weights in the model by adjusting the loss function to incorporate
+the class weights during the model compilation. 
+Most machine learning libraries support this functionality - and PyTorch is no exception.
+
+The **nn.CrossEntropyLoss** function allows the user to use the **weight** parameter to assign different weights to each class. 
+This is useful for our imbalanced dataset, where the number of samples between classes is very different. 
+By assigning a larger weight to the minority class, you will "penalize" the model more for incorrectly predicting samples in that class, 
+helping the model learn better on the minority class.
+
+The class weight i have calculated in the mentioned above is:
+```bash
+Class weights: tensor([0.7422, 0.2578])
+```
 
 
 
