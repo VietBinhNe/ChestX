@@ -306,6 +306,11 @@ The class weight i have calculated in the mentioned above is:
 ```bash
 Class weights: tensor([0.7422, 0.2578])
 ```
+,means that the NORMAL class has weight 0.7422 and the PNEUMONIA class has weight 0.2578.
+The NORMAL class (minority) has weight larger than PNEUMONIA (majority). 
+And **.to(device)** is just to make sure that **class_weights** and the model are on the same device, 
+avoiding errors during calculation.
+
 
 
 
